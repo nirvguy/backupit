@@ -28,18 +28,32 @@ read_config() {
 			value="$(echo $line | cut -d '=' -f 2)"
 			case $varname in
 				SOURCE_DIR)
+					[[ ! -z $value ]] ||
+					    abort "$1: $lineno: $varname: Source directory cannot be empty!"
+					[[ -d "$value" ]] ||
+					    abort "$1: $lineno: $varname: ${value} directory not found"
 					SOURCE_DIR="$value"
 					;;
 				BACKUP_DIR)
+					[[ ! -z $value ]] ||
+					    abort "$1: $lineno: $varname: Backup directory cannot be empty!"
+					[[ -d "$value" ]] ||
+					    abort "$1: $lineno: $varname: ${value} directory not found"
 					BACKUP_DIR="$value"
 					;;
 				TYPE)
+					[[ "$value" == fixed || "$value" == rotatory ]] ||
+					    abort "$1: $lineno: $varaneme: ${value} is not a valid backup type"
 					BACKUP_TYPE=$value
 					;;
 				PREFIX)
+					[[ $value =~ ^[a-zA-Z0-9]*$ ]] ||
+					    abort "$1: $lineno: $varname: $value is not a valid prefix"
 					BACKUP_PREFIX="$value"
 					;;
 				MAX)
+					[[ $BACKUP_MAX =~ ^[0-9]*$ ]] ||
+					    abort "$1: $lineno: $varname: $value is not an integer"
 					BACKUP_MAX=$value
 					;;
 			esac
@@ -102,6 +116,14 @@ fi
 [[ -f $BACKUP_CFG ]] || abort "Not config file $BACKUP_CFG founded!"
 
 read_config $BACKUP_CFG
+
+[[ ! -z $SOURCE_DIR ]] || abort "Not source directory specified!"
+[[ ! -z $BACKUP_DIR ]] || abort "Not backup directory specified!"
+[[ ! -z $BACKUP_TYPE ]] || abort "Not backup type specified!"
+
+if [[ $BACKUP_TYPE == "rotatory" ]]; then
+	[[ ! -z $BACKUP_MAX ]] || abort "MAX cannot be empty"
+fi
 
 case $BACKUP_TYPE in
 	rotatory)
