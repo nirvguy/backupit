@@ -1,0 +1,69 @@
+#!/bin/bash
+source "util.sh"
+
+test_fixed_backup() {
+	mkdir -p $srcdir $bkdir
+	mkdir "$srcdir/a"
+	mkdir "$srcdir/b"
+	mkdir "$srcdir/c"
+	touch "$srcdir/d.txt"
+	touch "$srcdir/b.txt"
+
+	echo "SOURCE_DIR=$srcdir" > $cfgfile
+	echo "BACKUP_DIR=$bkdir" >> $cfgfile
+	echo "TYPE=fixed" >> $cfgfile
+	echo "PREFIX=backup" >> $cfgfile
+
+	echo "a/" > $srcfile
+	echo "b/" >> $srcfile
+	echo "d.txt" >> $srcfile
+
+	../backup.sh $cfgfile
+
+	#The directory/file structure was created
+	assert $LINENO ! -d $bkdir/backup.1
+	assert $LINENO -d $bkdir/backup.0/a
+	assert $LINENO -d $bkdir/backup.0/b
+	assert $LINENO ! -d $bkdir/backup.0/c
+	assert $LINENO -f $bkdir/backup.0/d.txt
+	assert $LINENO ! -f $bkdir/backup.0/b.txt
+
+	local dtxt_inode=$(getinode $bkdir/backup.0/d.txt)
+	echo "b.txt" >> $srcfile
+	touch $srcdir/b/b.txt
+	local btxt_inode_orig=$(getinode $srcdir/b/b.txt)
+
+	../backup.sh $cfgfile
+
+	#The directory/file structure was syncronized
+	assert $LINENO -f $bkdir/backup.0/b.txt
+	assert $LINENO -f $bkdir/backup.0/b/b.txt
+	assert $LINENO ! -d $bkdir/backup.1
+	assert $LINENO ! -d $bkdir/backup.2
+	assert $LINENO -d $bkdir/backup.0/a
+	assert $LINENO -d $bkdir/backup.0/b
+	assert $LINENO -f $bkdir/backup.0/d.txt
+	local btxt_inode=$(getinode $bkdir/backup.0/b/b.txt)
+	local dtxt_inode_2=$(getinode $bkdir/backup.0/d.txt)
+	#Backup files and Source files are different files
+	assert $LINENO ! x$btxt_inode = x$btxt_inode_orig
+	#If nothing changed the file is the same
+	assert $LINENO x$dtxt_inode = x$dtxt_inode_2
+
+	echo "changed" >> $srcdir/d.txt
+	rm $srcdir/b/b.txt
+
+	../backup.sh $cfgfile
+
+	local dtxt_inode_2=$(getinode $bkdir/backup.0/d.txt)
+	#File changed
+	assert $LINENO ! x$dtxt_inode = x$dtxt_inode_2
+}
+
+echo "Testing fixed backups..."
+
+test_fixed_backup
+
+rm -rf $bkrootdir
+
+echo "test passed: $TEST_PASSED / $TEST_TOTAL"
