@@ -60,9 +60,112 @@ test_fixed_backup() {
 	assert $LINENO ! x$dtxt_inode = x$dtxt_inode_2
 }
 
+test_rotatory_backup() {
+	mkdir -p $srcdir $bkdir
+	mkdir "$srcdir/a"
+	mkdir "$srcdir/b"
+	mkdir "$srcdir/c"
+	touch "$srcdir/d.txt"
+	touch "$srcdir/b.txt"
+
+	echo "SOURCE_DIR=$srcdir" > $cfgfile
+	echo "BACKUP_DIR=$bkdir" >> $cfgfile
+	echo "TYPE=rotatory" >> $cfgfile
+	echo "PREFIX=backup" >> $cfgfile
+	echo "MAX=3" >> $cfgfile
+
+	echo "a/" > $srcfile
+	echo "b/" >> $srcfile
+	echo "d.txt" >> $srcfile
+
+	../backup.sh $cfgfile
+
+	#The directory/file structure was created
+	#and the other backups directories weren't
+	#accidentaly created
+	assert $LINENO -d $bkdir/backup.0
+	assert $LINENO ! -d $bkdir/backup.1
+	assert $LINENO ! -d $bkdir/backup.2
+	assert $LINENO -d $bkdir/backup.0/a
+	assert $LINENO -d $bkdir/backup.0/b
+	assert $LINENO ! -d $bkdir/backup.0/c
+	assert $LINENO -f $bkdir/backup.0/d.txt
+	assert $LINENO ! -f $bkdir/backup.0/b.txt
+	assert $LINENO ! -f $bkdir/backup.0/b/b.txt
+
+	local dtxt_inode_0=$(getinode $bkdir/backup.0/d.txt)
+
+	echo "b/" > $srcfile
+	echo "d.txt" >> $srcfile
+	echo "b.txt" >> $srcfile
+	touch $srcdir/b/b.txt
+	local btxt_inode_orig=$(getinode $srcdir/b/b.txt)
+
+	../backup.sh $cfgfile
+
+	#The backup.0 were preserved as backup.1
+	#and the new backup.0 where syncronized
+	assert $LINENO -d $bkdir/backup.0
+	assert $LINENO -d $bkdir/backup.1
+	assert $LINENO ! -d $bkdir/backup.2
+	assert $LINENO ! -d $bkdir/backup.0/a
+	assert $LINENO -d $bkdir/backup.0/b
+	assert $LINENO ! -d $bkdir/backup.0/c
+	assert $LINENO -d $bkdir/backup.1/a
+	assert $LINENO -d $bkdir/backup.1/b
+	assert $LINENO ! -d $bkdir/backup.1/c
+	assert $LINENO -f $bkdir/backup.0/d.txt
+	assert $LINENO -f $bkdir/backup.1/d.txt
+	assert $LINENO -f $bkdir/backup.0/b.txt
+	assert $LINENO ! -f $bkdir/backup.1/b.txt
+	assert $LINENO -f $bkdir/backup.0/b/b.txt
+	assert $LINENO ! -f $bkdir/backup.1/b/b.txt
+
+	local btxt_inode_1=$(getinode $bkdir/backup.0/b/b.txt)
+	local dtxt_inode_0=$(getinode $bkdir/backup.0/d.txt)
+	local dtxt_inode_1=$(getinode $bkdir/backup.1/d.txt)
+	assert $LINENO ! x$btxt_inode_1 = x$btxt_inode_orig
+	assert $LINENO x$dtxt_inode_0 = x$dtxt_inode_1
+
+	echo "changed" >> $srcdir/d.txt
+	rm $srcdir/b/b.txt
+
+	../backup.sh $cfgfile
+
+	assert $LINENO -d $bkdir/backup.0
+	assert $LINENO -d $bkdir/backup.1
+	assert $LINENO -d $bkdir/backup.2
+	assert $LINENO ! -d $bkdir/backup.0/a
+	assert $LINENO -d $bkdir/backup.0/b
+	assert $LINENO ! -d $bkdir/backup.0/c
+	assert $LINENO ! -d $bkdir/backup.1/a
+	assert $LINENO -d $bkdir/backup.1/b
+	assert $LINENO ! -d $bkdir/backup.1/c
+	assert $LINENO -d $bkdir/backup.2/a
+	assert $LINENO -d $bkdir/backup.2/b
+	assert $LINENO ! -d $bkdir/backup.2/c
+	assert $LINENO -f $bkdir/backup.0/d.txt
+	assert $LINENO -f $bkdir/backup.1/d.txt
+	assert $LINENO -f $bkdir/backup.2/d.txt
+	assert $LINENO ! -f $bkdir/backup.0/b/b.txt
+	assert $LINENO -f $bkdir/backup.1/b/b.txt
+	assert $LINENO ! -f $bkdir/backup.2/b/b.txt
+	local dtxt_inode_0=$(getinode $bkdir/backup.0/d.txt)
+	local dtxt_inode_1=$(getinode $bkdir/backup.1/d.txt)
+	local dtxt_inode_2=$(getinode $bkdir/backup.2/d.txt)
+	assert $LINENO ! x$dtxt_inode_0 = x$dtxt_inode_1
+	assert $LINENO x$dtxt_inode_1 = x$dtxt_inode_2
+}
+
 echo "Testing fixed backups..."
 
 test_fixed_backup
+
+rm -rf $bkrootdir
+
+echo "Testing rotatory backups..."
+
+test_rotatory_backup
 
 rm -rf $bkrootdir
 
