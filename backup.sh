@@ -8,6 +8,7 @@ MAX_LEVEL=
 EXCLUDE_LIST=
 SNAPSHOT_PREFIX=snapshot
 RSYNC=/bin/rsync
+RSYNC_FLAGS="-H -A -X -az --delete"
 
 debug() {
 	[[ $DEBUG ]] && "$@" || true
@@ -106,12 +107,13 @@ backup() {
 	if [[ -d "${dir_prefix}.1/$1" ]] ||
 		 [[ -f "${dir_prefix}.1/$1" ]]; then
 		$RSYNC \
-			 -Ha --delete \
+			 $RSYNC_FLAGS \
 			 --link-dest="$link_dest" \
 			 "$file" "${dir_prefix}.0/$1"
 	else
 		$RSYNC \
-			 -Ha --delete \
+			 $RSYNC_FLAGS \
+			 --exclude-from="$EXCLUDE_LIST" \
 			 "$file" "${dir_prefix}.0/$1"
 	fi
 }
