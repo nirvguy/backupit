@@ -10,9 +10,9 @@ test_fixed_backup() {
 	touch "$srcdir/b.txt"
 
 	echo "SOURCE_DIR=$srcdir" > $cfgfile
-	echo "BACKUP_DIR=$bkdir" >> $cfgfile
+	echo "SNAPSHOT_DEST=$bkdir" >> $cfgfile
 	echo "TYPE=fixed" >> $cfgfile
-	echo "PREFIX=backup" >> $cfgfile
+	echo "SNAPSHOT_PREFIX=backup" >> $cfgfile
 
 	echo "a/" > $srcfile
 	echo "b/" >> $srcfile
@@ -69,10 +69,10 @@ test_rotatory_backup() {
 	touch "$srcdir/b.txt"
 
 	echo "SOURCE_DIR=$srcdir" > $cfgfile
-	echo "BACKUP_DIR=$bkdir" >> $cfgfile
+	echo "SNAPSHOT_DEST=$bkdir" >> $cfgfile
 	echo "TYPE=rotatory" >> $cfgfile
-	echo "PREFIX=backup" >> $cfgfile
-	echo "MAX=3" >> $cfgfile
+	echo "SNAPSHOT_PREFIX=backup" >> $cfgfile
+	echo "MAX_LEVEL=3" >> $cfgfile
 
 	echo "a/" > $srcfile
 	echo "b/" >> $srcfile

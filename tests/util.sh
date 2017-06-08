@@ -1,3 +1,4 @@
+#!/bin/bash
 bkrootdir=`mktemp -d /tmp/bktest_XXX`
 LS=/bin/ls
 srcdir="$bkrootdir/source"
